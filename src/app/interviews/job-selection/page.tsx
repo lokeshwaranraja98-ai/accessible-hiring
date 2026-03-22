@@ -1,8 +1,11 @@
+"use client";
 
+import { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, Briefcase } from 'lucide-react';
+import { useAccessibility } from '@/contexts/AccessibilityContext';
 
 const availableJobs = [
   {
@@ -23,6 +26,22 @@ const availableJobs = [
 ];
 
 export default function JobSelectionPage() {
+  const { isSpeechEnabled, speak, cancelSpeech } = useAccessibility();
+
+  useEffect(() => {
+    if (isSpeechEnabled) {
+      const pageTitle = "Select a Job Role";
+      const pageDescription = "Choose the position you are applying for to start the interview process.";
+      const jobList = availableJobs.map(job => `Job available: ${job.title}. Description: ${job.description}.`).join(' ');
+      const textToSpeak = `${pageTitle}. ${pageDescription}. ${jobList}`;
+      speak(textToSpeak);
+    }
+
+    return () => {
+      cancelSpeech();
+    };
+  }, [isSpeechEnabled, speak, cancelSpeech]);
+
   return (
     <div className="gradient-background py-12 md:py-20">
       <div className="container mx-auto px-4">

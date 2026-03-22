@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 type Theme = "light" | "dark";
 
@@ -11,6 +11,10 @@ interface AccessibilityContextType {
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
   resetFontSize: () => void;
+  isSpeechEnabled: boolean;
+  toggleSpeech: () => void;
+  speak: (text: string) => void;
+  cancelSpeech: () => void;
 }
 
 const AccessibilityContext = createContext<AccessibilityContextType | undefined>(undefined);
@@ -23,10 +27,12 @@ const DEFAULT_FONT_SIZE = 100;
 export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
   const [fontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState<boolean>(false);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("theme") as Theme | null;
     const storedFontSize = localStorage.getItem("fontSize");
+    const storedSpeech = localStorage.getItem("speechEnabled");
 
     if (storedTheme) {
       setThemeState(storedTheme);
@@ -37,6 +43,10 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
 
     if (storedFontSize) {
       setFontSize(Number(storedFontSize));
+    }
+    
+    if (storedSpeech) {
+      setIsSpeechEnabled(storedSpeech === 'true');
     }
   }, []);
 
@@ -52,6 +62,13 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     root.style.fontSize = `${fontSize}%`;
     localStorage.setItem("fontSize", String(fontSize));
   }, [fontSize]);
+  
+  useEffect(() => {
+    localStorage.setItem('speechEnabled', String(isSpeechEnabled));
+    if (!isSpeechEnabled) {
+      window.speechSynthesis.cancel();
+    }
+  }, [isSpeechEnabled]);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
@@ -69,14 +86,36 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     setFontSize(DEFAULT_FONT_SIZE);
   };
 
+  const toggleSpeech = () => {
+    setIsSpeechEnabled(prev => !prev);
+  };
+  
+  const speak = useCallback((text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Stop any previous speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
+
+  const cancelSpeech = useCallback(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
   const value = useMemo(() => ({
     theme,
     setTheme,
     fontSize,
     increaseFontSize,
     decreaseFontSize,
-    resetFontSize
-  }), [theme, fontSize]);
+    resetFontSize,
+    isSpeechEnabled,
+    toggleSpeech,
+    speak,
+    cancelSpeech
+  }), [theme, fontSize, isSpeechEnabled, speak, cancelSpeech]);
 
   return (
     <AccessibilityContext.Provider value={value}>

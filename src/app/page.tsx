@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowRight, MessageSquare, Mic, Accessibility, Cpu, FileText } from 'lucide-react';
@@ -39,7 +40,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
             <Button asChild size="lg" className="rounded-full">
-              <Link href="/interviews">
+              <Link href="/interviews/job-selection">
                 Start an Interview <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>

@@ -32,7 +32,7 @@ export default function JobSelectionPage() {
     if (isSpeechEnabled) {
       const pageTitle = "Select a Job Role";
       const pageDescription = "Choose the position you are applying for to start the interview process.";
-      const jobList = availableJobs.map(job => `Job available: ${job.title}. Description: ${job.description}.`).join(' ');
+      const jobList = availableJobs.map(job => `Job available: ${job.title}. Description: ${job.description}. To select this job, say 'select ${job.title.toLowerCase()}'.`).join(' ');
       const textToSpeak = `${pageTitle}. ${pageDescription}. ${jobList}`;
       speak(textToSpeak);
     }
@@ -66,7 +66,7 @@ export default function JobSelectionPage() {
               <CardFooter>
                 <Button asChild className="w-full rounded-full" size="lg">
                   {/* In a real app, you'd pass the job title, e.g., `${job.href}?job=${encodeURIComponent(job.title)}` */}
-                  <Link href={job.href}>
+                  <Link href={job.href} data-voice-command={`select ${job.title.toLowerCase()}`}>
                     Select & Continue <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

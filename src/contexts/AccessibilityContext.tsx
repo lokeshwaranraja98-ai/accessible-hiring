@@ -161,7 +161,16 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     }
 
     if (!handled) {
-      if (command.includes('scroll down')) {
+      if (command.startsWith('select ')) {
+        const selector = `[data-voice-command="${command}"]`;
+        const targetElement = document.querySelector<HTMLElement>(selector);
+        if (targetElement) {
+          const jobTitle = command.substring('select '.length);
+          speak(`Selecting ${jobTitle}.`, true);
+          targetElement.click();
+          handled = true;
+        }
+      } else if (command.includes('scroll down')) {
           window.scrollBy(0, window.innerHeight * 0.7);
           speak("Scrolling down.", true);
           handled = true;

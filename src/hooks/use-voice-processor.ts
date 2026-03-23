@@ -35,7 +35,7 @@ interface Window {
 
 declare var window: Window;
 
-type RecognitionState = 'idle' | 'listening' | 'processing';
+type RecognitionState = 'idle' | 'listening' | 'processing' | 'starting';
 
 export const useVoiceProcessor = () => {
   const [transcript, setTranscript] = useState('');
@@ -70,16 +70,26 @@ export const useVoiceProcessor = () => {
           interimTranscript += event.results[i][0].transcript;
         }
       }
-      setTranscript(final + interimTranscript);
+      // Rebuild the full transcript for this utterance for live display
+      setTranscript(prev => {
+          const finalPortion = prev.replace(interimTranscript.split(' ')[0], '');
+          return finalPortion + final + interimTranscript;
+      });
+
       if (final) {
         setFinalTranscript(prev => prev + final);
       }
     };
     
     recognition.onend = () => {
-      if (recognitionState === 'listening') {
-        setRecognitionState('idle');
-      }
+        setRecognitionState(currentState => {
+            // Only transition to idle if we were in a listening or starting state.
+            // Avoids overriding a 'processing' state.
+            if (currentState === 'listening' || currentState === 'starting') {
+                return 'idle';
+            }
+            return currentState;
+        });
     };
     
     recognition.onerror = (event) => {
@@ -92,10 +102,11 @@ export const useVoiceProcessor = () => {
     return () => {
       recognition.stop();
     };
-  }, [recognitionState]);
+  }, []);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && recognitionState === 'idle') {
+      setRecognitionState('starting');
       setTranscript('');
       setFinalTranscript('');
       recognitionRef.current.start();
@@ -126,6 +137,10 @@ export const useVoiceProcessor = () => {
       audio.onended = () => {
         resolve();
       };
+      audio.onerror = () => {
+        console.error("Error playing audio.");
+        resolve();
+      }
     });
   }, []);
 

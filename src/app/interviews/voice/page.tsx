@@ -9,6 +9,7 @@ import type { AiVoiceInterviewInput } from "@/ai/flows/ai-voice-interview-flow.t
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useAccessibility } from "@/contexts/AccessibilityContext";
 
 type ConversationEntry = {
   speaker: 'user' | 'model';
@@ -20,6 +21,7 @@ export default function VoiceInterviewPage() {
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const { isVoiceControlActive } = useAccessibility();
 
   // Initial AI greeting
   useEffect(() => {
@@ -141,6 +143,7 @@ export default function VoiceInterviewPage() {
             className="rounded-full w-24 h-24 shadow-lg data-[state=listening]:bg-destructive"
             disabled={isProcessing}
             data-state={recognitionState === 'listening' ? 'listening' : 'idle'}
+            data-voice-command={recognitionState === 'listening' ? 'stop recording' : 'start recording'}
           >
             {isProcessing ? (
                 <Loader2 className="h-10 w-10 animate-spin" />
@@ -151,7 +154,12 @@ export default function VoiceInterviewPage() {
             )}
           </Button>
           <p className="text-sm text-muted-foreground">
-            {isProcessing ? "AI is responding..." : recognitionState === 'listening' ? 'Recording... Click to stop' : 'Click to start recording'}
+            {isProcessing
+              ? "AI is responding..."
+              : recognitionState === 'listening'
+              ? `Recording... ${isVoiceControlActive ? 'Say "stop recording" or ' : ''}click to stop`
+              : `${isVoiceControlActive ? 'Say "start recording" or ' : ''}click to start recording`
+            }
           </p>
         </div>
       </div>

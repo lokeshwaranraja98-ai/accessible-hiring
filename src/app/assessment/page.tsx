@@ -75,10 +75,17 @@ export default function AssessmentPage() {
     setError(null);
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const visualAid = currentQuestion?.format === 'visual' ? PlaceHolderImages.find(img => img.id === 'system-architecture-diagram') : null;
+  if (questions.length > 0) {
+    const currentQuestion = questions[currentQuestionIndex];
+    
+    // Safeguard for unexpected states
+    if (!currentQuestion) {
+      startOver();
+      return null;
+    }
 
-  if (questions.length > 0 && currentQuestion) {
+    const visualAid = currentQuestion.format === 'visual' ? PlaceHolderImages.find(img => img.id === 'system-architecture-diagram') : null;
+
     return (
       <div className="container mx-auto p-4 py-8">
         <Card className="max-w-4xl mx-auto shadow-xl rounded-2xl">
@@ -99,7 +106,7 @@ export default function AssessmentPage() {
           <CardContent className="space-y-6">
             {currentQuestion.format === 'visual' && visualAid && (
                 <div className="w-full aspect-video relative rounded-lg overflow-hidden border">
-                    <Image src={visualAid.imageUrl} alt={visualAid.description} layout="fill" objectFit="contain" data-ai-hint={visualAid.imageHint}/>
+                    <Image src={visualAid.imageUrl} alt={visualAid.description} fill={true} objectFit="contain" data-ai-hint={visualAid.imageHint}/>
                     <p className="absolute bottom-2 left-2 bg-black/50 text-white text-xs p-1 rounded">{currentQuestion.visualAidDescription}</p>
                 </div>
             )}

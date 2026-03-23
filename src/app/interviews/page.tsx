@@ -1,7 +1,11 @@
+"use client";
+
+import { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { MessageSquare, Mic, Video } from 'lucide-react';
+import { useAccessibility } from '@/contexts/AccessibilityContext';
 
 const interviewModes = [
   {
@@ -28,6 +32,22 @@ const interviewModes = [
 ];
 
 export default function InterviewSelectionPage() {
+  const { isSpeechEnabled, speak, cancelSpeech } = useAccessibility();
+
+  useEffect(() => {
+    if (isSpeechEnabled) {
+      const pageTitle = "Choose Your Interview Mode";
+      const pageDescription = "Select the format that allows you to best demonstrate your skills and experience.";
+      const modeList = interviewModes.map(mode => `To start the ${mode.title}, say '${mode.cta.toLowerCase()}'.`).join(' ');
+      const textToSpeak = `${pageTitle}. ${pageDescription}. ${modeList}`;
+      speak(textToSpeak);
+    }
+
+    return () => {
+      cancelSpeech();
+    };
+  }, [isSpeechEnabled, speak, cancelSpeech]);
+
   return (
     <div className="gradient-background py-12 md:py-20">
       <div className="container mx-auto px-4">
@@ -51,7 +71,7 @@ export default function InterviewSelectionPage() {
               </CardContent>
               <CardFooter>
                 <Button asChild className="w-full rounded-full" size="lg">
-                  <Link href={mode.href}>{mode.cta}</Link>
+                  <Link href={mode.href} data-voice-command={mode.cta.toLowerCase()}>{mode.cta}</Link>
                 </Button>
               </CardFooter>
             </Card>

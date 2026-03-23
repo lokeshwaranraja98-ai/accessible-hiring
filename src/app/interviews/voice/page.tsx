@@ -53,44 +53,56 @@ export default function VoiceInterviewPage() {
       startListening();
     }
   };
-
-  const processResponse = async () => {
-    if (!finalTranscript.trim()) return;
-
-    setIsProcessing(true);
-    setConversation(prev => [...prev, { speaker: 'user', text: finalTranscript }]);
-    
-    try {
-      const chatHistory = conversation.map(entry => ({
-        role: entry.speaker === 'user' ? 'user' : 'model',
-        content: entry.text,
-      }));
-
-      const input: AiVoiceInterviewInput = {
-        chatHistory,
-        candidateResponse: finalTranscript,
-        jobDescription: "The job description for the position.",
-        candidateResume: "The candidate's resume.",
-      };
-
-      const { audioResponse, textResponse } = await processVoiceInterviewResponse(input);
-      setConversation(prev => [...prev, { speaker: 'model', text: textResponse }]);
-      reset();
-      await playAudio(audioResponse);
-    } catch (error) {
-      console.error("Error processing voice response:", error);
-      setConversation(prev => [...prev, { speaker: 'model', text: "I'm sorry, I encountered an error. Could you please repeat that?" }]);
-    }
-    
-    setIsProcessing(false);
-  };
   
   useEffect(() => {
-    if (recognitionState === 'processing' && finalTranscript) {
-      processResponse();
+    if (recognitionState !== 'processing' || !finalTranscript.trim()) {
+      return;
     }
+
+    setIsProcessing(true);
+    
+    // We use a functional state update to get access to the most recent
+    // conversation state without adding it as a dependency to useEffect.
+    setConversation((prevConversation) => {
+      const userMessage: ConversationEntry = { speaker: 'user', text: finalTranscript };
+      const newConversation = [...prevConversation, userMessage];
+
+      // This async function will have the up-to-date `newConversation` in its closure.
+      const getAIResponse = async () => {
+        try {
+          const chatHistory = newConversation.map(entry => ({
+            role: entry.speaker,
+            content: entry.text,
+          }));
+
+          const input: AiVoiceInterviewInput = {
+            chatHistory,
+            candidateResponse: finalTranscript,
+            jobDescription: "The job description for the position.",
+            candidateResume: "The candidate's resume.",
+          };
+
+          const { audioResponse, textResponse } = await processVoiceInterviewResponse(input);
+          setConversation(prev => [...prev, { speaker: 'model', text: textResponse }]);
+          await playAudio(audioResponse);
+        } catch (error) {
+          console.error("Error processing voice response:", error);
+          setConversation(prev => [...prev, { speaker: 'model', text: "I'm sorry, I encountered an error. Could you please repeat that?" }]);
+        } finally {
+          // Reset states for the next turn.
+          reset();
+          setIsProcessing(false);
+        }
+      };
+
+      getAIResponse();
+      
+      return newConversation;
+    });
+  // The dependency array is intentionally kept minimal to avoid infinite loops.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recognitionState, finalTranscript]);
+  }, [recognitionState, finalTranscript, playAudio, reset]);
+
 
   return (
     <div className="container mx-auto p-4 flex flex-col h-[calc(100vh-4rem)]">

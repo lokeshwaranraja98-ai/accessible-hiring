@@ -115,7 +115,7 @@ export const useVoiceProcessor = () => {
     setRecognitionState('idle');
   }, []);
 
-  const playAudio = (audioDataUri: string) => {
+  const playAudio = useCallback((audioDataUri: string) => {
     return new Promise<void>((resolve) => {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -127,7 +127,7 @@ export const useVoiceProcessor = () => {
         resolve();
       };
     });
-  };
+  }, []);
 
   return {
     transcript,

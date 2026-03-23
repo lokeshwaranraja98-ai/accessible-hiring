@@ -2,13 +2,13 @@
 
 import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { Button } from "./ui/button";
-import { Moon, Sun, ZoomIn, ZoomOut, RefreshCw, Volume2, Accessibility as AccessibilityIcon } from "lucide-react";
+import { Moon, Sun, ZoomIn, ZoomOut, RefreshCw, Volume2, Accessibility as AccessibilityIcon, Mic } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 
 export function AccessibilityControls() {
-  const { theme, setTheme, increaseFontSize, decreaseFontSize, resetFontSize, isSpeechEnabled, toggleSpeech } = useAccessibility();
+  const { theme, setTheme, increaseFontSize, decreaseFontSize, resetFontSize, isSpeechEnabled, toggleSpeech, isVoiceControlActive, toggleVoiceControl } = useAccessibility();
 
   return (
     <div className="flex items-center gap-1">
@@ -46,7 +46,7 @@ export function AccessibilityControls() {
             <span>Reset</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel>Screen Reader</DropdownMenuLabel>
+          <DropdownMenuLabel>Assistive Tech</DropdownMenuLabel>
            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
             <Volume2 className="h-4 w-4" />
             <Label htmlFor="speech-toggle" className="flex-grow pr-2 font-normal">
@@ -57,6 +57,18 @@ export function AccessibilityControls() {
               checked={isSpeechEnabled}
               onCheckedChange={toggleSpeech}
               aria-label="Toggle screen reader speech"
+            />
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+            <Mic className="h-4 w-4" />
+            <Label htmlFor="voice-control-toggle" className="flex-grow pr-2 font-normal">
+              Voice Control
+            </Label>
+            <Switch
+              id="voice-control-toggle"
+              checked={isVoiceControlActive}
+              onCheckedChange={toggleVoiceControl}
+              aria-label="Toggle voice control"
             />
           </DropdownMenuItem>
         </DropdownMenuContent>

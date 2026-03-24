@@ -98,7 +98,11 @@ const aiVoiceInterviewFlow = ai.defineFlow(
   async (input) => {
     // Generate the AI's text response
     const { output: promptOutput } = await interviewPrompt(input);
-    const aiTextResponse = promptOutput!.textResponse;
+    const aiTextResponse = promptOutput?.textResponse;
+
+    if (!aiTextResponse) {
+      throw new Error('AI failed to generate a text response.');
+    }
 
     // Convert the AI's text response to speech
     const { media } = await ai.generate({

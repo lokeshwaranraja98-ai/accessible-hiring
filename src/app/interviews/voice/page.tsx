@@ -40,7 +40,10 @@ export default function VoiceInterviewPage() {
             };
             const { audioResponse, textResponse } = await processVoiceInterviewResponse(input);
             setConversation([{ speaker: 'model', text: textResponse }]);
-            await playAudio(audioResponse);
+            // Only play audio if an audio response is returned (skips for the initial greeting)
+            if (audioResponse) {
+              await playAudio(audioResponse);
+            }
         } catch (error) {
             console.error("Error during initial greeting:", error);
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred. Check the server logs for more details.";

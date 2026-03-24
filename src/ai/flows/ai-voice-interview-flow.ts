@@ -20,7 +20,7 @@ const AiVoiceInterviewInputSchema = z.object({
 export type AiVoiceInterviewInput = z.infer<typeof AiVoiceInterviewInputSchema>;
 
 const AiVoiceInterviewOutputSchema = z.object({
-  audioResponse: z.string().describe('The AI\'s spoken response as a WAV audio data URI.'),
+  audioResponse: z.string().describe('The AI\'s spoken response as a WAV audio data URI. Can be empty for initial greeting.'),
   textResponse: z.string().describe('The AI\'s response as plain text.'),
 });
 export type AiVoiceInterviewOutput = z.infer<typeof AiVoiceInterviewOutputSchema>;
@@ -86,16 +86,17 @@ const aiVoiceInterviewFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      let aiTextResponse: string | undefined;
-
-      // For the initial greeting, use a hardcoded response to ensure reliability.
-      // For subsequent messages, generate the response dynamically.
+      // For the initial greeting, use a hardcoded response and skip TTS to avoid rate-limiting on page load.
       if (input.chatHistory.length === 0) {
-        aiTextResponse = "Hello! Welcome to your voice interview. Let's start with your first question: Can you tell me about your experience relevant to this role?";
-      } else {
-         const { output: promptOutput } = await interviewPrompt(input);
-         aiTextResponse = promptOutput?.textResponse;
+        return {
+          textResponse: "Hello! Welcome to your voice interview. Let's start with your first question: Can you tell me about your experience relevant to this role?",
+          audioResponse: '', // Return empty audio response to prevent TTS call
+        };
       }
+
+      // For subsequent messages, generate the response dynamically.
+      const { output: promptOutput } = await interviewPrompt(input);
+      const aiTextResponse = promptOutput?.textResponse;
 
       if (!aiTextResponse) {
         throw new Error('AI failed to generate a text response.');

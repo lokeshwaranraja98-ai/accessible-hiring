@@ -48,7 +48,9 @@ async function toWav(
       resolve(Buffer.concat(buffers).toString('base64'));
     });
     writer.on('error', reject);
-    writer.end(pcmData);
+    
+    writer.write(pcmData);
+    writer.end();
   });
 }
 
@@ -84,9 +86,16 @@ const aiVoiceInterviewFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // 1. Generate the AI's text response
-      const { output: promptOutput } = await interviewPrompt(input);
-      const aiTextResponse = promptOutput?.textResponse;
+      let aiTextResponse: string | undefined;
+
+      // For the initial greeting, use a hardcoded response to ensure reliability.
+      // For subsequent messages, generate the response dynamically.
+      if (input.chatHistory.length === 0) {
+        aiTextResponse = "Hello! Welcome to your voice interview. Let's start with your first question: Can you tell me about your experience relevant to this role?";
+      } else {
+         const { output: promptOutput } = await interviewPrompt(input);
+         aiTextResponse = promptOutput?.textResponse;
+      }
 
       if (!aiTextResponse) {
         throw new Error('AI failed to generate a text response.');

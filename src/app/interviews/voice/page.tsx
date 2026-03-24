@@ -36,14 +36,15 @@ export default function VoiceInterviewPage() {
             await playAudio(audioResponse);
         } catch (error) {
             console.error("Error during initial greeting:", error);
-            setConversation([{ speaker: 'model', text: "Sorry, I'm having trouble connecting. Please try refreshing." }]);
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred. Check the server logs for more details.";
+            setConversation([{ speaker: 'model', text: `Sorry, I'm having trouble connecting. Details: ${errorMessage}` }]);
         } finally {
             setIsProcessing(false);
         }
     };
     initialGreeting();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playAudio]); // playAudio is stable and this effect runs only once.
+  }, []); 
 
   const handleToggleRecording = () => {
     if (recognitionState === 'listening') {
@@ -60,13 +61,10 @@ export default function VoiceInterviewPage() {
 
     setIsProcessing(true);
     
-    // We use a functional state update to get access to the most recent
-    // conversation state without adding it as a dependency to useEffect.
     setConversation((prevConversation) => {
       const userMessage: ConversationEntry = { speaker: 'user', text: finalTranscript };
       const newConversation = [...prevConversation, userMessage];
 
-      // This async function will have the up-to-date `newConversation` in its closure.
       const getAIResponse = async () => {
         try {
           const chatHistory = newConversation.map(entry => ({
@@ -84,9 +82,9 @@ export default function VoiceInterviewPage() {
           await playAudio(audioResponse);
         } catch (error) {
           console.error("Error processing voice response:", error);
-          setConversation(prev => [...prev, { speaker: 'model', text: "I'm sorry, I encountered an error. Could you please repeat that?" }]);
+          const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+          setConversation(prev => [...prev, { speaker: 'model', text: `I'm sorry, I encountered an error. Details: ${errorMessage}` }]);
         } finally {
-          // Reset states for the next turn.
           reset();
           setIsProcessing(false);
         }

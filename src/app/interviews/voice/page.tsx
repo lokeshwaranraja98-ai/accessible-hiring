@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Bot, User, Loader2 } from "lucide-react";
 import { useVoiceProcessor } from "@/hooks/use-voice-processor";
@@ -21,9 +21,16 @@ export default function VoiceInterviewPage() {
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const { isVoiceControlActive } = useAccessibility();
+  const effectRan = useRef(false);
 
   // Initial AI greeting, runs once on component mount
   useEffect(() => {
+    // In React 18's Strict Mode, useEffect runs twice in development.
+    // This check prevents the API call from running on the second render.
+    if (effectRan.current === true) {
+      return;
+    }
+
     const initialGreeting = async () => {
         setIsProcessing(true);
         try {
@@ -43,6 +50,11 @@ export default function VoiceInterviewPage() {
         }
     };
     initialGreeting();
+
+    // The cleanup function sets the ref, preventing the effect from running again on remount.
+    return () => {
+      effectRan.current = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 

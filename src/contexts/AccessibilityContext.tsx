@@ -161,8 +161,16 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     }
 
     if (!handled) {
-      const selector = `[data-voice-command="${command}"]`;
-      const targetElement = document.querySelector<HTMLElement>(selector);
+      const commandElements = document.querySelectorAll<HTMLElement>('[data-voice-command]');
+      let targetElement: HTMLElement | null = null;
+      
+      for (const element of Array.from(commandElements)) {
+          const commands = (element.dataset.voiceCommand || '').split('|');
+          if (commands.includes(command)) {
+              targetElement = element;
+              break;
+          }
+      }
 
       if (targetElement) {
         speak(`Activating: ${command}`, true);

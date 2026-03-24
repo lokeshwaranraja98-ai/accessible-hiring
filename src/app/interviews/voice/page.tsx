@@ -26,10 +26,11 @@ export default function VoiceInterviewPage() {
   // Initial AI greeting, runs once on component mount
   useEffect(() => {
     // In React 18's Strict Mode, useEffect runs twice in development.
-    // This check prevents the API call from running on the second render.
+    // This ref check prevents the API call from running on the second render.
     if (effectRan.current === true) {
       return;
     }
+    effectRan.current = true;
 
     const initialGreeting = async () => {
         setIsProcessing(true);
@@ -54,10 +55,6 @@ export default function VoiceInterviewPage() {
     };
     initialGreeting();
 
-    // The cleanup function sets the ref, preventing the effect from running again on remount.
-    return () => {
-      effectRan.current = true;
-    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
@@ -151,7 +148,7 @@ export default function VoiceInterviewPage() {
             className="rounded-full w-24 h-24 shadow-lg data-[state=listening]:bg-destructive"
             disabled={isProcessing}
             data-state={recognitionState === 'listening' ? 'listening' : 'idle'}
-            data-voice-command={recognitionState === 'listening' ? 'stop recording' : 'start recording'}
+            data-voice-command={recognitionState === 'listening' ? 'stop recording|stop' : 'start recording|start'}
           >
             {isProcessing ? (
                 <Loader2 className="h-10 w-10 animate-spin" />
@@ -165,8 +162,8 @@ export default function VoiceInterviewPage() {
             {isProcessing
               ? "AI is responding..."
               : recognitionState === 'listening'
-              ? `Recording... ${isVoiceControlActive ? 'Say "stop recording" or ' : ''}click to stop`
-              : `${isVoiceControlActive ? 'Say "start recording" or ' : ''}click to start recording`
+              ? `Recording... ${isVoiceControlActive ? 'Say "stop" or ' : ''}click to stop.`
+              : `${isVoiceControlActive ? 'Say "start" or ' : ''}click to start recording.`
             }
           </p>
         </div>

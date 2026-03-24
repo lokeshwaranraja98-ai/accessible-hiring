@@ -12,13 +12,10 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import wav from 'wav'; // Ensure 'wav' package is installed: npm install wav@^1.0.2
-import { Readable } from 'stream';
 
 const AiVoiceInterviewInputSchema = z.object({
   chatHistory: z.array(z.object({ role: z.enum(['user', 'model']), content: z.string() })).describe('The history of the conversation, including previous AI questions and candidate responses.'),
   candidateResponse: z.string().describe('The candidate\'s current response, transcribed from speech to text.'),
-  jobDescription: z.string().describe('The job description for the position the candidate is interviewing for.'),
-  candidateResume: z.string().describe('The candidate\'s resume or CV.'),
 });
 export type AiVoiceInterviewInput = z.infer<typeof AiVoiceInterviewInputSchema>;
 
@@ -31,37 +28,27 @@ export type AiVoiceInterviewOutput = z.infer<typeof AiVoiceInterviewOutputSchema
 /**
  * Converts PCM audio data to WAV format and returns it as a base64 encoded string.
  * @param pcmData The PCM audio data buffer.
- * @param channels Number of audio channels (default: 1).
- * @param rate Sample rate in Hz (default: 24000).
- * @param sampleWidth Sample width in bytes (default: 2).
  * @returns A Promise that resolves to the base64 encoded WAV string.
  */
 async function toWav(
   pcmData: Buffer,
-  channels = 1,
-  rate = 24000,
-  sampleWidth = 2
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const writer = new wav.Writer({
-      channels,
-      sampleRate: rate,
-      bitDepth: sampleWidth * 8,
+      channels: 1,
+      sampleRate: 24000,
+      bitDepth: 16,
     });
 
-    let bufs = [] as any[];
+    const buffers: Buffer[] = [];
+    writer.on('data', (chunk) => {
+      buffers.push(chunk);
+    });
+    writer.on('end', () => {
+      resolve(Buffer.concat(buffers).toString('base64'));
+    });
     writer.on('error', reject);
-    writer.on('data', function (d) {
-      bufs.push(d);
-    });
-    writer.on('end', function () {
-      resolve(Buffer.concat(bufs).toString('base64'));
-    });
-
-    const readableStream = new Readable();
-    readableStream.push(pcmData);
-    readableStream.push(null); // No more data
-    readableStream.pipe(writer);
+    writer.end(pcmData);
   });
 }
 
@@ -69,24 +56,24 @@ const interviewPrompt = ai.definePrompt({
   name: 'aiVoiceInterviewPrompt',
   input: { schema: AiVoiceInterviewInputSchema },
   output: { schema: z.object({ textResponse: z.string().describe('The AI interviewer\'s next question or statement.') }) },
-  prompt: `You are an AI interviewer for a job position. Your goal is to conduct a professional and fair interview. You are the 'model'. The candidate is the 'user'.
+  prompt: `You are a friendly and professional AI interviewer. Your goal is to conduct a fair and effective voice interview. You are the 'model'. The candidate is the 'user'.
 
-Job Description:
-{{{jobDescription}}}
-
-Candidate Resume:
-{{{candidateResume}}}
-
+The conversation history is provided below.
+{{#if chatHistory}}
 Conversation History:
 {{#each chatHistory}}
-{{this.role}}: {{{this.content}}}
+- {{this.role}}: {{{this.content}}}
 {{/each}}
+{{/if}}
 
-Candidate's Current Response: {{{candidateResponse}}}
+The candidate's latest response is: "{{{candidateResponse}}}"
 
-Based on the job description, the candidate's resume, and the conversation history, formulate your next question or a follow-up statement. Maintain a professional tone. Keep your questions concise and relevant. Do not repeat previous questions. Do not end the interview unless explicitly instructed by the user.
+Based on this, formulate your next question or a follow-up statement.
+- If the chat history is empty, start with a warm welcome and ask your first question.
+- Keep your questions concise, open-ended, and relevant to a typical job interview.
+- Do not repeat questions.
 
-Interviewer: `,
+Your response:`,
 });
 
 const aiVoiceInterviewFlow = ai.defineFlow(
@@ -96,45 +83,50 @@ const aiVoiceInterviewFlow = ai.defineFlow(
     outputSchema: AiVoiceInterviewOutputSchema,
   },
   async (input) => {
-    // Generate the AI's text response
-    const { output: promptOutput } = await interviewPrompt(input);
-    const aiTextResponse = promptOutput?.textResponse;
+    try {
+      // 1. Generate the AI's text response
+      const { output: promptOutput } = await interviewPrompt(input);
+      const aiTextResponse = promptOutput?.textResponse;
 
-    if (!aiTextResponse) {
-      throw new Error('AI failed to generate a text response.');
-    }
+      if (!aiTextResponse) {
+        throw new Error('AI failed to generate a text response.');
+      }
 
-    // Convert the AI's text response to speech
-    const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' }, // You can choose other voices like 'Achernar', 'Ceti', 'Rigel' etc.
+      // 2. Convert the AI's text response to speech
+      const { media } = await ai.generate({
+        model: googleAI.model('gemini-2.5-flash-preview-tts'),
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            },
           },
         },
-      },
-      prompt: aiTextResponse,
-    });
+        prompt: aiTextResponse,
+      });
 
-    if (!media) {
-      throw new Error('No audio media returned from TTS model.');
+      if (!media?.url) {
+        throw new Error('No audio media returned from TTS model.');
+      }
+
+      // 3. Convert PCM audio to WAV format
+      const audioBuffer = Buffer.from(
+        media.url.substring(media.url.indexOf(',') + 1),
+        'base64'
+      );
+
+      const wavBase64 = await toWav(audioBuffer);
+
+      return {
+        audioResponse: 'data:audio/wav;base64,' + wavBase64,
+        textResponse: aiTextResponse,
+      };
+    } catch (error: any) {
+        console.error("[aiVoiceInterviewFlow] Critical Error:", error);
+        // Re-throw a more informative error to be caught by the calling page.
+        throw new Error(`Failed to process voice interview response. Details: ${error.message}`);
     }
-
-    // Extract PCM data from the data URI
-    const audioBuffer = Buffer.from(
-      media.url.substring(media.url.indexOf(',') + 1),
-      'base64'
-    );
-
-    // Convert PCM to WAV and get base64 string
-    const wavBase64 = await toWav(audioBuffer);
-
-    return {
-      audioResponse: 'data:audio/wav;base64,' + wavBase64,
-      textResponse: aiTextResponse,
-    };
   }
 );
 

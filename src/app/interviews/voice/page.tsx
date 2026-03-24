@@ -32,8 +32,6 @@ export default function VoiceInterviewPage() {
             const input: AiVoiceInterviewInput = {
                 chatHistory: [],
                 candidateResponse: "The candidate has just joined the interview.",
-                jobDescription: "The job description for the position.",
-                candidateResume: "The candidate's resume.",
             };
             const { audioResponse, textResponse } = await processVoiceInterviewResponse(input);
             setConversation([{ speaker: 'model', text: textResponse }]);
@@ -80,8 +78,6 @@ export default function VoiceInterviewPage() {
           const input: AiVoiceInterviewInput = {
             chatHistory,
             candidateResponse: finalTranscript,
-            jobDescription: "The job description for the position.",
-            candidateResume: "The candidate's resume.",
           };
 
           const { audioResponse, textResponse } = await processVoiceInterviewResponse(input);

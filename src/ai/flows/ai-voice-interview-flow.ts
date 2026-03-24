@@ -69,7 +69,24 @@ const interviewPrompt = ai.definePrompt({
   name: 'aiVoiceInterviewPrompt',
   input: { schema: AiVoiceInterviewInputSchema },
   output: { schema: z.object({ textResponse: z.string().describe('The AI interviewer\'s next question or statement.') }) },
-  prompt: `You are an AI interviewer for a job position. Your goal is to conduct a professional and fair interview.\n\nJob Description:\n{{{jobDescription}}}\n\nCandidate Resume:\n{{{candidateResume}}}\n\nConversation History:\n{{#each chatHistory}}\n  {{#ifEquals role "user"}}Candidate: {{/ifEquals}}\n  {{#ifEquals role "model"}}Interviewer: {{/ifEquals}}{{{content}}}\n{{/each}}\n\nCandidate's Current Response: {{{candidateResponse}}}\n\nBased on the job description, the candidate's resume, and the conversation history, formulate your next question or a follow-up statement. Maintain a professional tone. Keep your questions concise and relevant. Do not repeat previous questions. Do not end the interview unless explicitly instructed by the user.\n\nInterviewer: `,
+  prompt: `You are an AI interviewer for a job position. Your goal is to conduct a professional and fair interview. You are the 'model'. The candidate is the 'user'.
+
+Job Description:
+{{{jobDescription}}}
+
+Candidate Resume:
+{{{candidateResume}}}
+
+Conversation History:
+{{#each chatHistory}}
+{{this.role}}: {{{this.content}}}
+{{/each}}
+
+Candidate's Current Response: {{{candidateResponse}}}
+
+Based on the job description, the candidate's resume, and the conversation history, formulate your next question or a follow-up statement. Maintain a professional tone. Keep your questions concise and relevant. Do not repeat previous questions. Do not end the interview unless explicitly instructed by the user.
+
+Interviewer: `,
 });
 
 const aiVoiceInterviewFlow = ai.defineFlow(

@@ -20,12 +20,10 @@ export default function VoiceInterviewPage() {
   const { transcript, finalTranscript, recognitionState, startListening, stopListening, playAudio, reset } = useVoiceProcessor();
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
   const { isVoiceControlActive } = useAccessibility();
 
-  // Initial AI greeting
+  // Initial AI greeting, runs once on component mount
   useEffect(() => {
-    if (hasStarted) return;
     const initialGreeting = async () => {
         setIsProcessing(true);
         try {
@@ -39,12 +37,13 @@ export default function VoiceInterviewPage() {
         } catch (error) {
             console.error("Error during initial greeting:", error);
             setConversation([{ speaker: 'model', text: "Sorry, I'm having trouble connecting. Please try refreshing." }]);
+        } finally {
+            setIsProcessing(false);
         }
-        setIsProcessing(false);
     };
     initialGreeting();
-    setHasStarted(true);
-  }, [hasStarted, playAudio]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playAudio]); // playAudio is stable and this effect runs only once.
 
   const handleToggleRecording = () => {
     if (recognitionState === 'listening') {

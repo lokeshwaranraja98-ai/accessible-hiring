@@ -109,6 +109,12 @@ export const useVoiceProcessor = () => {
         recognitionRef.current.onend = null;
         recognitionRef.current.onerror = null;
       }
+      // Ensure audio is cleaned up on unmount
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
     };
   }, []);
 
@@ -167,7 +173,12 @@ export const useVoiceProcessor = () => {
       if (playPromise !== undefined) {
         playPromise.catch(error => {
           console.error("Error playing audio:", error);
-          reject(error);
+          // Don't reject on user-initiated play interruption
+          if (error.name === 'AbortError') {
+            resolve();
+          } else {
+            reject(error);
+          }
         });
       } else {
         resolve();
